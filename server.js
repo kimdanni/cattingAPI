@@ -1,32 +1,34 @@
 const express = require('express');
 var request = require('request');
-var axios = require('axios');
 const app = express();
-const port = 3000;
+const port = 8080;
+const axios = require('axios');
 const mysql = require('mysql');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true}));
+const config = require('./config/database.json');
 
 
 // 커넥션을 정의합니다.
 // RDS Console 에서 본인이 설정한 값을 입력해주세요.
+
 var connection = mysql.createConnection({
-  host: "cattingdb.covmio9mfsfv.us-east-1.rds.amazonaws.com",
-  user: "danni",
-  password: "zing2018^^",
-  database: "cattingdb"
+  host: config.host,
+  user: config.user,
+  password: config.password,
+  database: config.database,
 });
 
-// RDS에 접속합니다.
+// RDS 접속
 connection.connect(function(err) {
-  if (err) {
-    throw err; // 접속에 실패하면 에러를 throw 합니다.
-  } else {
-    // 접속시 쿼리를 보냅니다.
-    connection.query("SELECT cid, cName, uid FROM cats", function(err, rows) {
+	if (err) {
+		throw err; // 접속 실패
+	} else {
+		// 접속 성공
+		connection.query("SELECT cid, cName, uid FROM cats", function(err, rows) {
 		console.log(rows); // 간단한 정보 출력
-	});
-  }
+		});
+	}
 });
 
 function sendrows(res, uid) {
@@ -90,7 +92,7 @@ app.post("/addUser", (req, res) => {
 	var uid = req.body.uid;
 	var nickName = req.body.nickName;
 	var camID = req.body.camID;
-	connection.query("INSERT INTO users (id, nickName, camID) VALUES (?, ?, ?, ?) ", [uid, nickName, camID], (err, rows) => {
+	connection.query("INSERT INTO users (id, nickName, camID) VALUES (?, ?, ?) ", [uid, nickName, camID], (err, rows) => {
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
@@ -102,7 +104,7 @@ app.post("/addUser", (req, res) => {
 
 //updateUserInfo
 app.post("/updateUser", (req, res) => {
-  var uid = req.body.uid;
+    var uid = req.body.uid;
 	var nickName = req.body.nickName;
 	var camID = req.body.camID;
 
@@ -128,6 +130,7 @@ app.post("/getCat", (req, res) => {
 		res.send(rows[0]);
 	});
 });
+
 //addCatInfo
 app.post("/addCat", (req, res) => {
 	var uid = req.body.uid;
@@ -180,7 +183,7 @@ app.post("/updateCat", (req, res) => {
 			return console.log(err)
 		}
 		console.log("CATS ADDED!");
-		connection.query("select uid, cid, cName, cPicture from cats where uid=?;", [cid], (err, results) => { //cat DB 접근
+		connection.query("select uid, cid, cName, cPicture from cats where cid=?;", [cid], (err, results) => { //cat DB 접근
 			if (err) {
 				res.send('{"uid": "fail"}')
 				return console.log(err)
@@ -212,8 +215,6 @@ app.post("/deleteCat", (req, res) => {
 
 
 
-
-
 async function getCamAPI(res, cid, chattid) {
    let sendData = { "cid" : " ", "chattid" : " "}
    sendData.cid = cid
@@ -233,15 +234,15 @@ async function getCamAPI(res, cid, chattid) {
 //sendMessage
 app.post("/message", (req, res) => {
 
-   var uid = req.body.uid;
+  var uid = req.body.uid;
   var cid = req.body.cid;
   var message = req.body.message;
-  /*
+/*
   var uid = "dkjflajkdsf";
   var cid = 1;
   var message = "고양이 모해";
-  */
-  if (message.length > 255 || message == null){
+*/
+  if (message.length > 255 || message == null || message == undefined){
     res.send('{"uid" : "fail"}') // uid 번호 같은걸 넘겨주는 편이 좋을 것 같음
   }
 
@@ -268,7 +269,6 @@ app.post("/message", (req, res) => {
 
     getCamAPI(res, cid, tid);
 });
-
 
 
 app.listen(port, () => {
