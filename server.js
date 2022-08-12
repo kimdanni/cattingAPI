@@ -1,23 +1,20 @@
-const fetch = require("node-fetch");
 const express = require('express');
 var request = require('request');
 var axios = require('axios');
-const config = require('./config/database.json');
 const app = express();
-const port = 8080;
+const port = 3000;
 const mysql = require('mysql');
 app.use(express.json());
-app.use(express.urlencoded({ extended: false}));
+app.use(express.urlencoded({ extended: true}));
 
 
 // 커넥션을 정의합니다.
 // RDS Console 에서 본인이 설정한 값을 입력해주세요.
-
 var connection = mysql.createConnection({
-  host: config.host,
-  user: config.user,
-  password: config.password,
-  database: config.database,
+  host: "cattingdb.covmio9mfsfv.us-east-1.rds.amazonaws.com",
+  user: "danni",
+  password: "zing2018^^",
+  database: "cattingdb"
 });
 
 // RDS에 접속합니다.
@@ -26,9 +23,9 @@ connection.connect(function(err) {
     throw err; // 접속에 실패하면 에러를 throw 합니다.
   } else {
     // 접속시 쿼리를 보냅니다.
-    connection.query("SELECT * FROM cats", function(err, rows, fields) {
-      console.log(rows); // 결과를 출력합니다!
-    });
+    connection.query("SELECT cid, cName, uid FROM cats", function(err, rows) {
+		console.log(rows); // 간단한 정보 출력
+	});
   }
 });
 
@@ -61,7 +58,9 @@ app.post("/test", (req,res)=>{
 app.post("/getUser", (req, res) => {
     var uid = req.body.uid;
 	console.log("?!!?",req.body.uid);
-	connection.query("select cid, cName, cPicture from cats where uid=?;", [uid], (err, rows) => { //cat DB 접근
+	
+	//cat DB 접근
+	connection.query("select cid, cName, cPicture from cats where uid=?;", [uid], (err, rows) => { 
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
@@ -72,6 +71,10 @@ app.post("/getUser", (req, res) => {
 		//user DB 접근
 		connection.query("select id, nickName, camID from users where id=?;", [uid], (err, rows) => {
 			if (err) {
+				res.send('{"uid": "fail"}')
+				return console.log(err)
+			}
+			if (rows.length == 0) {
 				res.send('{"uid": "fail"}')
 				return console.log(err)
 			}
@@ -118,7 +121,7 @@ app.post("/updateUser", (req, res) => {
 app.post("/getCat", (req, res) => {
 	var uid = req.body.uid;
 	var cid = req.body.cid;
-	connection.query("select uid, cid, cName, breed, birthDate, gender, cPicture, bio from cats where uid=?;", [uid], (err, rows) => { //cat DB 접근
+	connection.query("select uid, cid, cName, breed, date_format(birthDate, '%Y-%m-%d') as birthDate, gender, cPicture, bio from cats where uid=?;", [uid], (err, rows) => { //cat DB 접근
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
@@ -144,8 +147,20 @@ app.post("/addCat", (req, res) => {
 			return console.log(err)
 		}
 		console.log("CATS ADDED!");
+		connection.query("select uid, cid, cName, cPicture from cats where cid=?;", [cid], (err, results) => { //cat DB 접근
+			if (err) {
+				res.send('{"uid": "fail"}')
+				return console.log(err)
+			}
+			if (results.length == 0) {
+				res.send('{"uid": "fail"}')
+				return console.log(err)
+			}
+			res.send(results[0])
+			console.log(results[0])
+	
+		});
 	});
-	sendrows(res, uid);
 });
 
 //updateCatInfo
@@ -167,32 +182,44 @@ app.post("/updateCat", (req, res) => {
 			return console.log(err)
 		}
 		console.log("CATS ADDED!");
+		connection.query("select uid, cid, cName, cPicture from cats where uid=?;", [cid], (err, results) => { //cat DB 접근
+			if (err) {
+				res.send('{"uid": "fail"}')
+				return console.log(err)
+			}
+			if (results.length == 0) {
+				res.send('{"uid": "fail"}')
+				return console.log(err)
+			}
+			res.send(results[0])
+			console.log(results[0])
+	
+		});
 	});
-	sendrows(res, uid);
 });
 
 //deleteCatInfo
 app.post("/deleteCat", (req, res) => {
 	var uid = req.body.uid;
 	var cid = req.body.cid;
-  console.log(uid)
 	connection.query("DELETE FROM cats WHERE cid=?;", [cid], (err, rows) => {
 		if(err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
 		}
-		console.log("DELETED CAT")
-		res.send(uid + "'s cat was deleted.")
+		console.log("DELETED CAT") 
+		res.send(`{"uid": "${uid}", "cid": ${cid}}`)
 	});
 });
 
 
-async function getCamAPI(res, cid, chattid) {
-	let sendData = { "cid" : " ", "chattid" : " "}
-	sendData.cid = cid
+
+async function getCamAPI(res, uid) {
+	let sendData = { "uid" : " "}
+	sendData.uid = uid
 	try {
 		// axios.post 링크에서 camAPI 가져오기
-		let response = await axios.post('http://localhost:3000/getCat', sendData) //promise 객체를 반환
+		let response = await axios.get('http://kimdanni.iptime.org:8080/getCat/1', sendData) //promise 객체를 반환
 		let data = await response.data
 
 		res.json(data)
@@ -205,43 +232,26 @@ async function getCamAPI(res, cid, chattid) {
 
 //sendMessage
 app.post("/message", (req, res) => {
-
 	var uid = req.body.uid;
   var cid = req.body.cid;
   var message = req.body.message;
-  /*
-  var uid = "dkjflajkdsf";
-  var cid = 1;
-  var message = "고양이 모해";
-  */
-  if (message.length > 255 || message == null){
+
+  if (message.length() > 255 || message == None) {
     res.send('{"uid" : "fail"}') // uid 번호 같은걸 넘겨주는 편이 좋을 것 같음
   }
 
   var sql = "INSERT INTO message(uid, cid, message) VALUES (?, ?, ?);"
   var params = [uid, cid, message];
   connection.query(sql, params, (err, rows) => {
-    if (err) {
-			res.send('{"uid": "fail"}')
-			return console.log(err)
-		}
-    console.log("??",rows[0]);
-	});
-
-  var tid = -1;
-  var sql = "SELECT tid FROM message ORDER BY tid DESC LIMIT 1;"
-  var params = [uid, cid, message];
-  connection.query(sql, (err, rows) => {
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
 		}
-		tid = rows[0];
+		console.log("MESSAGE ADDED!");
 	});
-
-    getCamAPI(res, cid, tid);
+	sendrows(res, uid);
+	getCamAPI(res, uid);
 });
-
 
 app.listen(port, () => {
     console.log(`server started ! http://localhost:${port}`);
