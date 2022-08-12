@@ -192,7 +192,7 @@ async function getCamAPI(res, cid, chattid) {
 	sendData.cid = cid
 	try {
 		// axios.post 링크에서 camAPI 가져오기
-		let response = await axios.post('localhost:3000/getCat', sendData) //promise 객체를 반환
+		let response = await axios.post('http://localhost:3000/getCat', sendData) //promise 객체를 반환
 		let data = await response.data
 
 		res.json(data)
@@ -205,11 +205,16 @@ async function getCamAPI(res, cid, chattid) {
 
 //sendMessage
 app.post("/message", (req, res) => {
+
 	var uid = req.body.uid;
   var cid = req.body.cid;
   var message = req.body.message;
-  console.log(uid)
-  if (message.length() > 255 || message == None){
+  /*
+  var uid = "dkjflajkdsf";
+  var cid = 1;
+  var message = "고양이 모해";
+  */
+  if (message.length > 255 || message == null){
     res.send('{"uid" : "fail"}') // uid 번호 같은걸 넘겨주는 편이 좋을 것 같음
   }
 
@@ -220,7 +225,7 @@ app.post("/message", (req, res) => {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
 		}
-		res.send(rows[0]);
+    console.log("??",rows[0]);
 	});
 
   var tid = -1;
@@ -234,8 +239,7 @@ app.post("/message", (req, res) => {
 		tid = rows[0];
 	});
 
-	sendrows(res, uid);
-	getCamAPI(res, uid, tid);
+    getCamAPI(res, cid, tid);
 });
 
 
