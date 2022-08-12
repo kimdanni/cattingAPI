@@ -119,9 +119,8 @@ app.post("/updateUser", (req, res) => {
 
 //getCanInfo
 app.post("/getCat", (req, res) => {
-	var uid = req.body.uid;
 	var cid = req.body.cid;
-	connection.query("select uid, cid, cName, breed, date_format(birthDate, '%Y-%m-%d') as birthDate, gender, cPicture, bio from cats where uid=?;", [uid], (err, rows) => { //cat DB 접근
+	connection.query("select uid, cid, cName, breed, date_format(birthDate, '%Y-%m-%d') as birthDate, gender, cPicture, bio from cats where cid=?;", [cid], (err, rows) => { //cat DB 접근
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
@@ -129,7 +128,6 @@ app.post("/getCat", (req, res) => {
 		res.send(rows[0]);
 	});
 });
-
 //addCatInfo
 app.post("/addCat", (req, res) => {
 	var uid = req.body.uid;
