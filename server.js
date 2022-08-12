@@ -58,9 +58,9 @@ app.post("/test", (req,res)=>{
 app.post("/getUser", (req, res) => {
     var uid = req.body.uid;
 	console.log("?!!?",req.body.uid);
-	
+
 	//cat DB 접근
-	connection.query("select cid, cName, cPicture from cats where uid=?;", [uid], (err, rows) => { 
+	connection.query("select cid, cName, cPicture from cats where uid=?;", [uid], (err, rows) => {
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
@@ -158,7 +158,7 @@ app.post("/addCat", (req, res) => {
 			}
 			res.send(results[0])
 			console.log(results[0])
-	
+
 		});
 	});
 });
@@ -193,7 +193,7 @@ app.post("/updateCat", (req, res) => {
 			}
 			res.send(results[0])
 			console.log(results[0])
-	
+
 		});
 	});
 });
@@ -207,51 +207,71 @@ app.post("/deleteCat", (req, res) => {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
 		}
-		console.log("DELETED CAT") 
+		console.log("DELETED CAT")
 		res.send(`{"uid": "${uid}", "cid": ${cid}}`)
 	});
 });
 
 
 
-async function getCamAPI(res, uid) {
-	let sendData = { "uid" : " "}
-	sendData.uid = uid
-	try {
-		// axios.post 링크에서 camAPI 가져오기
-		let response = await axios.get('http://kimdanni.iptime.org:8080/getCat/1', sendData) //promise 객체를 반환
-		let data = await response.data
 
-		res.json(data)
 
-	} catch (error) {
-		console.error(error)
-		return error
-	}
+async function getCamAPI(res, cid, chattid) {
+   let sendData = { "cid" : " ", "chattid" : " "}
+   sendData.cid = cid
+   try {
+      // axios.post 링크에서 camAPI 가져오기
+      let response = await axios.post('http://localhost:3000/getCat', sendData) //promise 객체를 반환
+      let data = await response.data
+
+      res.json(data)
+
+   } catch (error) {
+      console.error(error)
+      return error
+   }
 }
 
 //sendMessage
 app.post("/message", (req, res) => {
-	var uid = req.body.uid;
+
+   var uid = req.body.uid;
   var cid = req.body.cid;
   var message = req.body.message;
-
-  if (message.length() > 255 || message == None) {
+  /*
+  var uid = "dkjflajkdsf";
+  var cid = 1;
+  var message = "고양이 모해";
+  */
+  if (message.length > 255 || message == null){
     res.send('{"uid" : "fail"}') // uid 번호 같은걸 넘겨주는 편이 좋을 것 같음
   }
 
   var sql = "INSERT INTO message(uid, cid, message) VALUES (?, ?, ?);"
   var params = [uid, cid, message];
   connection.query(sql, params, (err, rows) => {
-		if (err) {
-			res.send('{"uid": "fail"}')
-			return console.log(err)
-		}
-		console.log("MESSAGE ADDED!");
-	});
-	sendrows(res, uid);
-	getCamAPI(res, uid);
+    if (err) {
+         res.send('{"uid": "fail"}')
+         return console.log(err)
+      }
+    console.log("??",rows[0]);
+   });
+
+  var tid = -1;
+  var sql = "SELECT tid FROM message ORDER BY tid DESC LIMIT 1;"
+  var params = [uid, cid, message];
+  connection.query(sql, (err, rows) => {
+      if (err) {
+         res.send('{"uid": "fail"}')
+         return console.log(err)
+      }
+      tid = rows[0];
+   });
+
+    getCamAPI(res, cid, tid);
 });
+
+
 
 app.listen(port, () => {
     console.log(`server started ! http://localhost:${port}`);
