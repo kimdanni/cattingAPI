@@ -253,7 +253,6 @@ app.post("/message", (req, res) => {
          res.send('{"uid": "fail"}')
          return console.log(err)
       }
-    console.log("??",rows[0]);
    });
 
   var tid = -1;
