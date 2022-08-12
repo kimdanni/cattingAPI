@@ -2,22 +2,22 @@ const fetch = require("node-fetch");
 const express = require('express');
 var request = require('request');
 var axios = require('axios');
+const config = require('./config/database.json');
 const app = express();
-const port = 3000;
+const port = 8080;
 const mysql = require('mysql');
 app.use(express.json());
-app.use(express.urlencoded({ extended: true}));
+app.use(express.urlencoded({ extended: false}));
 
 
 // 커넥션을 정의합니다.
 // RDS Console 에서 본인이 설정한 값을 입력해주세요.
-const data = fs.readFileSync('./database.json');
-const conf = JSON.parse(data);
+
 var connection = mysql.createConnection({
-  host: conf.host,
-  user: conf.user,
-  password: conf.password,
-  database: conf.database,
+  host: config.host,
+  user: config.user,
+  password: config.password,
+  database: config.database,
 });
 
 // RDS에 접속합니다.
@@ -175,6 +175,7 @@ app.post("/updateCat", (req, res) => {
 app.post("/deleteCat", (req, res) => {
 	var uid = req.body.uid;
 	var cid = req.body.cid;
+  console.log(uid)
 	connection.query("DELETE FROM cats WHERE cid=?;", [cid], (err, rows) => {
 		if(err) {
 			res.send('{"uid": "fail"}')
@@ -186,12 +187,12 @@ app.post("/deleteCat", (req, res) => {
 });
 
 
-async function getCamAPI(res, uid) {
-	let sendData = { "uid" : " "}
-	sendData.uid = uid
+async function getCamAPI(res, cid, chattid) {
+	let sendData = { "cid" : " ", "chattid" : " "}
+	sendData.cid = cid
 	try {
 		// axios.post 링크에서 camAPI 가져오기
-		let response = await axios.get('http://kimdanni.iptime.org:8080/getCat/1', sendData) //promise 객체를 반환
+		let response = await axios.post('localhost:3000/getCat', sendData) //promise 객체를 반환
 		let data = await response.data
 
 		res.json(data)
@@ -207,7 +208,7 @@ app.post("/message", (req, res) => {
 	var uid = req.body.uid;
   var cid = req.body.cid;
   var message = req.body.message;
-
+  console.log(uid)
   if (message.length() > 255 || message == None){
     res.send('{"uid" : "fail"}') // uid 번호 같은걸 넘겨주는 편이 좋을 것 같음
   }
@@ -215,14 +216,26 @@ app.post("/message", (req, res) => {
   var sql = "INSERT INTO message(uid, cid, message) VALUES (?, ?, ?);"
   var params = [uid, cid, message];
   connection.query(sql, params, (err, rows) => {
+    if (err) {
+			res.send('{"uid": "fail"}')
+			return console.log(err)
+		}
+		res.send(rows[0]);
+	});
+
+  var tid = -1;
+  var sql = "SELECT tid FROM message ORDER BY tid DESC LIMIT 1;"
+  var params = [uid, cid, message];
+  connection.query(sql, (err, rows) => {
 		if (err) {
 			res.send('{"uid": "fail"}')
 			return console.log(err)
 		}
-		console.log("CATS ADDED!");
+		tid = rows[0];
 	});
+
 	sendrows(res, uid);
-	getCamAPI(res, uid);
+	getCamAPI(res, uid, tid);
 });
 
 
