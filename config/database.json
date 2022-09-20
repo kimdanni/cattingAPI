@@ -1,6 +1,6 @@
 {
-  "host": "cattingdb.covmio9mfsfv.us-east-1.rds.amazonaws.com",
+  "host": "",
   "user": "danni",
-  "password": "zing2018^^",
+  "password": "",
   "database": "cattingdb"
 }
